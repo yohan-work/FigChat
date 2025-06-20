@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Figma Chat Rooms (Firebase)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2c2c2c;
+            color: white;
+            padding: 16px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .project-info {
+            background: #4a90e2;
+            color: white;
+            padding: 12px 16px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .project-info .icon {
+            width: 16px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .connection-status {
+            padding: 8px 16px;
+            font-size: 11px;
+            text-align: center;
+            background: #e8f5e8;
+            color: #2d5a2d;
+            border-bottom: 1px solid #d0e8d0;
+        }
+
+        .connection-status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border-bottom-color: #ffeaa7;
+        }
+
+        .connection-status.error {
+            background: #ffe8e8;
+            color: #5a2d2d;
+            border-bottom-color: #e8d0d0;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            max-width: 85%;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .message.own {
+            background: #4a90e2;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.other {
+            background: white;
+            border: 1px solid #e0e0e0;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-header {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+
+        .message-content {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        .input-container {
+            padding: 16px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 13px;
+            outline: none;
+            resize: none;
+            font-family: inherit;
+        }
+
+        .message-input:focus {
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+        }
+
+        .send-button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .send-button:hover {
+            background: #357abd;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-list {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 8px 16px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .firebase-status {
+            background: #FF6B35;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        프로젝트 채팅방 <span class="firebase-status">⚡ yhchoi</span>
+    </div>
+    
+    <div class="project-info">
+        <div class="icon">📁</div>
+        <div id="project-name">프로젝트 로딩 중...</div>
+    </div>
+    
+    <div class="connection-status connecting" id="connection-status">
+        Firebase 연결 중...
+    </div>
+    
+    <div class="user-list" id="user-list">
+        온라인 사용자: 계산 중...
+    </div>
+    
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <div class="empty-state">
+                <div class="icon">🔥</div>
+                <div>[yhyhyhyhcccchoi]<br>첫 번째 메시지를 보내보세요.</div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <textarea 
+                id="message-input" 
+                class="message-input" 
+                placeholder="메시지를 입력하세요..."
+                rows="1"
+                maxlength="500"
+            ></textarea>
+            <button id="send-button" class="send-button" disabled>
+                ➤
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK v9 -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, onSnapshot, orderBy, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Firebase를 전역 변수로 설정
+        window.firebaseModules = {
+            initializeApp,
+            getFirestore,
+            collection,
+            addDoc,
+            onSnapshot,
+            orderBy,
+            query,
+            serverTimestamp
+        };
+    </script>
+
+    <script>
+        // Firebase 설정 - 실제 프로젝트 설정
+        const firebaseConfig = {
+			apiKey: "dummy",
+			authDomain: "dummy",
+			projectId: "dummy",
+			storageBucket: "dummy",
+			messagingSenderId: "dummy",
+			appId: "dummy",
+			measurementId: "dummy"
+		};
+
+        class FigmaFirebaseChatApp {
+            constructor() {
+                this.currentUser = null;
+                this.projectInfo = null;
+                this.roomId = null;
+                this.unsubscribe = null;
+                this.onlineUsers = new Set();
+                
+                this.initializeElements();
+                this.setupEventListeners();
+                this.initializeFirebase();
+            }
+            
+            initializeElements() {
+                this.elements = {
+                    projectName: document.getElementById('project-name'),
+                    connectionStatus: document.getElementById('connection-status'),
+                    userList: document.getElementById('user-list'),
+                    messages: document.getElementById('messages'),
+                    messageInput: document.getElementById('message-input'),
+                    sendButton: document.getElementById('send-button')
+                };
+            }
+            
+            setupEventListeners() {
+                // Figma 플러그인 메시지 수신
+                window.onmessage = (event) => {
+                    const msg = event.data.pluginMessage;
+                    if (msg) {
+                        this.handleFigmaMessage(msg);
+                    }
+                };
+                
+                // 메시지 입력 이벤트
+                this.elements.messageInput.addEventListener('input', (e) => {
+                    this.handleInputChange(e);
+                });
+                
+                this.elements.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                
+                // 전송 버튼
+                this.elements.sendButton.addEventListener('click', () => {
+                    this.sendMessage();
+                });
+                
+                // 자동 높이 조절
+                this.elements.messageInput.addEventListener('input', () => {
+                    this.adjustTextareaHeight();
+                });
+            }
+            
+            async initializeFirebase() {
+                try {
+                    // Firebase 모듈이 로드될 때까지 대기
+                    while (!window.firebaseModules) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                    
+                    const { initializeApp, getFirestore } = window.firebaseModules;
+                    
+                    // Firebase 초기화
+                    this.app = initializeApp(firebaseConfig);
+                    this.db = getFirestore(this.app);
+                    
+                    this.updateConnectionStatus('Firebase 연결됨', 'connected');
+                    console.log('✅ Firebase 초기화 성공!');
+                    
+                } catch (error) {
+                    console.error('❌ Firebase 초기화 오류:', error);
+                    this.enableDemoMode();
+                }
+            }
+            
+            enableDemoMode() {
+                console.log('데모 모드로 실행 중 (Firebase 설정 필요)');
+                this.updateConnectionStatus('데모 모드 - Firebase 설정 필요', 'error');
+                this.elements.sendButton.disabled = false;
+                
+                // 데모 메시지 표시
+                setTimeout(() => {
+                    this.displayMessage({
+                        content: '⚠️ Firebase 설정이 필요합니다. README.md를 참고하여 설정해주세요.',
+                        user: { name: '시스템', id: 'system' },
+                        timestamp: new Date().toISOString()
+                    });
+                }, 1000);
+            }
+            
+            handleFigmaMessage(msg) {
+                switch (msg.type) {
+                    case 'init':
+                        this.currentUser = msg.data.user;
+                        this.projectInfo = msg.data;
+                        this.roomId = msg.data.fileId || 'default';
+                        console.log('🔍 채팅방 ID 설정:', {
+                            fileName: msg.data.fileName,
+                            fileId: msg.data.fileId,
+                            roomId: this.roomId
+                        });
+                        this.updateProjectInfo();
+                        this.joinRoom();
+                        break;
+                        
+                    case 'file-info':
+                        this.projectInfo = msg.data;
+                        this.roomId = msg.data.fileId || 'default';
+                        console.log('🔍 채팅방 ID 업데이트:', {
+                            fileName: msg.data.fileName,
+                            fileId: msg.data.fileId,
+                            roomId: this.roomId
+                        });
+                        this.updateProjectInfo();
+                        break;
+                }
+            }
+            
+            updateProjectInfo() {
+                if (this.projectInfo) {
+                    const fileName = this.projectInfo.fileName || '무제 프로젝트';
+                    const shortRoomId = this.roomId ? this.roomId.substring(0, 8) + '...' : 'N/A';
+                    this.elements.projectName.textContent = `${fileName} (ID: ${shortRoomId})`;
+                }
+            }
+            
+            async joinRoom() {
+                if (!this.db || !this.roomId) return;
+                
+                try {
+                    const { collection, onSnapshot, orderBy, query } = window.firebaseModules;
+                    
+                    // 이전 리스너 정리
+                    if (this.unsubscribe) {
+                        this.unsubscribe();
+                    }
+                    
+                    // 메시지 실시간 리스너 설정
+                    const messagesRef = collection(this.db, 'chatRooms', this.roomId, 'messages');
+                    const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'));
+                    
+                    this.unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+                        snapshot.docChanges().forEach((change) => {
+                            if (change.type === 'added') {
+                                this.displayMessage(change.doc.data());
+                            }
+                        });
+                    });
+                    
+                    console.log('✅ 실시간 리스너 설정 완료');
+                    
+                    // 사용자 온라인 상태 업데이트
+                    await this.updateOnlineStatus(true);
+                    
+                    // 페이지 종료 시 오프라인 상태로 변경
+                    window.addEventListener('beforeunload', () => {
+                        this.updateOnlineStatus(false);
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ 방 참가 오류:', error);
+                    this.updateConnectionStatus('연결 오류', 'error');
+                }
+            }
+            
+            async updateOnlineStatus(isOnline) {
+                if (!this.db || !this.currentUser || !this.roomId) return;
+                
+                try {
+                    const userRef = this.db.collection('chatRooms')
+                        .doc(this.roomId)
+                        .collection('onlineUsers')
+                        .doc(this.currentUser.id);
+                    
+                    if (isOnline) {
+                        await userRef.set({
+                            name: this.currentUser.name,
+                            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        await userRef.delete();
+                    }
+                } catch (error) {
+                    console.error('온라인 상태 업데이트 오류:', error);
+                }
+            }
+            
+            async sendMessage() {
+                const content = this.elements.messageInput.value.trim();
+                if (!content) return;
+                
+                if (!this.db) {
+                    // 데모 모드에서는 로컬에 표시만
+                    this.displayMessage({
+                        content: content,
+                        user: this.currentUser || { name: '익명', id: 'demo' },
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    this.elements.messageInput.value = '';
+                    this.adjustTextareaHeight();
+                    return;
+                }
+                
+                try {
+                    const { collection, addDoc, serverTimestamp } = window.firebaseModules;
+                    
+                    const message = {
+                        content: content,
+                        user: this.currentUser,
+                        timestamp: serverTimestamp(),
+                        roomId: this.roomId
+                    };
+                    
+                    const messagesRef = collection(this.db, 'chatRooms', this.roomId, 'messages');
+                    await addDoc(messagesRef, message);
+                    
+                    this.elements.messageInput.value = '';
+                    this.adjustTextareaHeight();
+                    this.elements.sendButton.disabled = true;
+                    
+                } catch (error) {
+                    console.error('메시지 전송 오류:', error);
+                    this.displayMessage({
+                        content: '⚠️ 메시지 전송에 실패했습니다.',
+                        user: { name: '시스템', id: 'system' },
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            }
+            
+            displayMessage(message) {
+                // 빈 상태 메시지 제거
+                const emptyState = this.elements.messages.querySelector('.empty-state');
+                if (emptyState) {
+                    emptyState.remove();
+                }
+                
+                const messageElement = document.createElement('div');
+                const isOwnMessage = message.user?.id === this.currentUser?.id;
+                
+                messageElement.className = `message ${isOwnMessage ? 'own' : 'other'}`;
+                messageElement.innerHTML = `
+                    <div class="message-header">
+                        ${message.user?.name || '익명'}
+                    </div>
+                    <div class="message-content">
+                        ${this.escapeHtml(message.content)}
+                    </div>
+                    <div class="message-time">
+                        ${this.formatTime(message.timestamp)}
+                    </div>
+                `;
+                
+                this.elements.messages.appendChild(messageElement);
+                this.elements.messages.scrollTop = this.elements.messages.scrollHeight;
+            }
+            
+            handleInputChange(e) {
+                const hasContent = e.target.value.trim().length > 0;
+                this.elements.sendButton.disabled = !hasContent;
+            }
+            
+            updateConnectionStatus(message, status) {
+                this.elements.connectionStatus.textContent = message;
+                this.elements.connectionStatus.className = `connection-status ${status}`;
+            }
+            
+            adjustTextareaHeight() {
+                const textarea = this.elements.messageInput;
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            formatTime(timestamp) {
+                let date;
+                if (timestamp && timestamp.toDate) {
+                    date = timestamp.toDate();
+                } else {
+                    date = new Date(timestamp);
+                }
+                return date.toLocaleTimeString('ko-KR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+        }
+        
+        // 앱 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            new FigmaFirebaseChatApp();
+        });
+    </script>
+</body>
+</html> 

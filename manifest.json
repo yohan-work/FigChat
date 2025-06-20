@@ -1,0 +1,18 @@
+{
+  "name": "Figma Chat Rooms",
+  "id": "figma-chat-rooms",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui-firebase.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "permissions": [
+    "currentuser"
+  ],
+  "menu": [
+    {
+      "name": "프로젝트 채팅방",
+      "command": "open-chat"
+    }
+  ]
+} 
