@@ -6,13 +6,11 @@
   "ui": "ui-firebase.html",
   "editorType": ["figma"],
   "documentAccess": "dynamic-page",
-  "permissions": [
-    "currentuser"
-  ],
+  "permissions": ["currentuser"],
   "menu": [
     {
-      "name": "프로젝트 채팅방",
+      "name": "컴포넌트별 채팅방",
       "command": "open-chat"
     }
   ]
-} 
+}
