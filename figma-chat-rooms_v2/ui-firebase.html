@@ -284,6 +284,48 @@
         font-size: 10px;
         font-weight: 500;
       }
+
+      .badge-controls {
+        padding: 8px 16px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .badge-control-btn {
+        border: none;
+        border-radius: 6px;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 500;
+        transition: background 0.2s;
+        color: white;
+      }
+
+      .badge-control-btn.create-btn {
+        background: #4a90e2;
+      }
+
+      .badge-control-btn.create-btn:hover:not(:disabled) {
+        background: #357abd;
+      }
+
+      .badge-control-btn.remove-btn {
+        background: #ff6b35;
+      }
+
+      .badge-control-btn.remove-btn:hover:not(:disabled) {
+        background: #e85a2b;
+      }
+
+      .badge-control-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
     </style>
   </head>
   <body>
@@ -319,6 +361,15 @@
     >
       ⌨️ 단축키: Ctrl+/ → "채팅" 검색 | 플러그인 내: Ctrl+L (닫기), Ctrl+Enter
       (전송), ESC (닫기)
+    </div>
+
+    <div class="badge-controls" id="badge-controls" style="display: none">
+      <button id="create-badges-btn" class="badge-control-btn create-btn">
+        배지 생성
+      </button>
+      <button id="remove-badges-btn" class="badge-control-btn remove-btn">
+        배지 제거
+      </button>
     </div>
 
     <div class="connection-status connecting" id="connection-status">
@@ -475,6 +526,22 @@
           this.elements.roomDropdown.addEventListener("change", () => {
             this.handleRoomChange();
           });
+
+          // 배지 제거 버튼 이벤트
+          const removeBadgesBtn = document.getElementById("remove-badges-btn");
+          if (removeBadgesBtn) {
+            removeBadgesBtn.addEventListener("click", () => {
+              this.removeAllFigmaBadges();
+            });
+          }
+
+          // 배지 생성 버튼 이벤트
+          const createBadgesBtn = document.getElementById("create-badges-btn");
+          if (createBadgesBtn) {
+            createBadgesBtn.addEventListener("click", () => {
+              this.createFigmaBadges();
+            });
+          }
         }
 
         async handleRoomChange() {
@@ -586,6 +653,12 @@
               }, 1000);
 
               this.elements.autoSwitchInfo.style.display = "block";
+
+              // 배지 컨트롤 표시
+              const badgeControls = document.getElementById("badge-controls");
+              if (badgeControls) {
+                badgeControls.style.display = "flex";
+              }
 
               // 단축키 정보 표시 (5초 후 자동 숨김)
               const shortcutInfo = document.getElementById("shortcut-info");
@@ -718,6 +791,7 @@
               instance: "인스턴스",
               nested: "중첩",
               layer: "레이어",
+              frame: "프레임",
             };
 
             this.elements.roomType.textContent =
@@ -881,6 +955,9 @@
 
                   // 현재 방 정보 업데이트
                   this.updateCurrentRoomInfo();
+
+                  // 🆕 피그마에 배지 업데이트 요청
+                  this.updateFigmaChatBadges();
                 },
                 (error) => {
                   console.error(`❌ ${component.name} 리스너 에러:`, error);
@@ -897,6 +974,96 @@
             });
           } catch (error) {
             console.error("❌ 메시지 개수 리스너 설정 오류:", error);
+          }
+        }
+
+        // 🆕 피그마 채팅 배지 업데이트 함수
+        updateFigmaChatBadges() {
+          try {
+            // 컴포넌트별 메시지 개수를 객체로 변환
+            const componentMessageCounts = {};
+            this.roomMessageCounts.forEach((count, componentId) => {
+              componentMessageCounts[componentId] = count;
+            });
+
+            console.log(
+              "🏷️ 피그마 배지 업데이트 요청:",
+              componentMessageCounts
+            );
+
+            // 피그마 플러그인에 배지 업데이트 요청
+            parent.postMessage(
+              {
+                pluginMessage: {
+                  type: "update-chat-badges",
+                  data: {
+                    componentMessageCounts: componentMessageCounts,
+                  },
+                },
+              },
+              "*"
+            );
+          } catch (error) {
+            console.error("❌ 피그마 배지 업데이트 요청 오류:", error);
+          }
+        }
+
+        // 🆕 모든 피그마 배지 제거 함수
+        removeAllFigmaBadges() {
+          try {
+            console.log("🏷️ 모든 배지 제거 요청");
+
+            // 피그마 플러그인에 배지 제거 요청
+            parent.postMessage(
+              {
+                pluginMessage: {
+                  type: "remove-all-badges",
+                },
+              },
+              "*"
+            );
+
+            // 사용자에게 피드백 제공
+            const removeBadgesBtn =
+              document.getElementById("remove-badges-btn");
+            if (removeBadgesBtn) {
+              const originalText = removeBadgesBtn.textContent;
+              removeBadgesBtn.textContent = "✅";
+              removeBadgesBtn.disabled = true;
+
+              setTimeout(() => {
+                removeBadgesBtn.textContent = originalText;
+                removeBadgesBtn.disabled = false;
+              }, 2000);
+            }
+          } catch (error) {
+            console.error("❌ 피그마 배지 제거 요청 오류:", error);
+          }
+        }
+
+        // 🆕 피그마 배지 생성 함수
+        createFigmaBadges() {
+          try {
+            console.log("🏷️ 배지 생성 요청");
+
+            // 현재 메시지 개수 정보로 배지 생성
+            this.updateFigmaChatBadges();
+
+            // 사용자에게 피드백 제공
+            const createBadgesBtn =
+              document.getElementById("create-badges-btn");
+            if (createBadgesBtn) {
+              const originalText = createBadgesBtn.textContent;
+              createBadgesBtn.textContent = "✅";
+              createBadgesBtn.disabled = true;
+
+              setTimeout(() => {
+                createBadgesBtn.textContent = originalText;
+                createBadgesBtn.disabled = false;
+              }, 2000);
+            }
+          } catch (error) {
+            console.error("❌ 피그마 배지 생성 요청 오류:", error);
           }
         }
 
