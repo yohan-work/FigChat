@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Figma Component Chat Rooms (Firebase)</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #f5f5f5;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        background: #2c2c2c;
+        color: white;
+        padding: 16px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .project-info {
+        background: #4a90e2;
+        color: white;
+        padding: 12px 16px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .project-info .icon {
+        width: 16px;
+        height: 16px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .room-selector {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 12px 16px;
+      }
+
+      .room-selector-label {
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+
+      .room-dropdown {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 12px;
+        background: white;
+        cursor: pointer;
+        outline: none;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      .room-dropdown:focus {
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+      }
+
+      .room-dropdown option {
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+
+      .current-room {
+        background: #e8f4fd;
+        color: #2c5a8a;
+        padding: 8px 16px;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid #d0e8f0;
+      }
+
+      .current-room .room-type {
+        background: rgba(76, 144, 226, 0.2);
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 500;
+      }
+
+      .auto-switch-info {
+        background: #fff3cd;
+        color: #856404;
+        padding: 6px 16px;
+        font-size: 10px;
+        text-align: center;
+        border-bottom: 1px solid #ffeaa7;
+      }
+
+      .keyboard-shortcut-info {
+        background: #e8f4fd;
+        color: #2c5a8a;
+        padding: 6px 16px;
+        font-size: 10px;
+        text-align: center;
+        border-bottom: 1px solid #d0e8f0;
+      }
+
+      .connection-status {
+        padding: 8px 16px;
+        font-size: 11px;
+        text-align: center;
+        background: #e8f5e8;
+        color: #2d5a2d;
+        border-bottom: 1px solid #d0e8d0;
+      }
+
+      .connection-status.connecting {
+        background: #fff3cd;
+        color: #856404;
+        border-bottom-color: #ffeaa7;
+      }
+
+      .connection-status.error {
+        background: #ffe8e8;
+        color: #5a2d2d;
+        border-bottom-color: #e8d0d0;
+      }
+
+      .chat-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: white;
+      }
+
+      .messages {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        background: #fafafa;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .message {
+        margin-bottom: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        max-width: 85%;
+        word-wrap: break-word;
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      .message.own {
+        background: #4a90e2;
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+      }
+
+      .message.other {
+        background: white;
+        border: 1px solid #e0e0e0;
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+      }
+
+      .message-header {
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        opacity: 0.8;
+      }
+
+      .message-content {
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .message-time {
+        font-size: 10px;
+        opacity: 0.6;
+        margin-top: 4px;
+      }
+
+      .input-container {
+        padding: 16px;
+        background: white;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        gap: 8px;
+      }
+
+      .message-input {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        font-size: 13px;
+        outline: none;
+        resize: none;
+        font-family: inherit;
+      }
+
+      .message-input:focus {
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+      }
+
+      .send-button {
+        background: #4a90e2;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+
+      .send-button:hover {
+        background: #357abd;
+      }
+
+      .send-button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+        font-size: 13px;
+      }
+
+      .empty-state .icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .user-list {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 8px 16px;
+        font-size: 11px;
+        color: #666;
+      }
+
+      .firebase-status {
+        background: #ff6b35;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      컴포넌트별 채팅방 <span class="firebase-status">⚡ yhchoi</span>
+    </div>
+
+    <div class="project-info">
+      <div class="icon">📁</div>
+      <div id="project-name">프로젝트 로딩 중...</div>
+    </div>
+
+    <div class="room-selector">
+      <div class="room-selector-label">채팅방 선택</div>
+      <select id="room-dropdown" class="room-dropdown">
+        <option value="">로딩 중...</option>
+      </select>
+    </div>
+
+    <div class="current-room" id="current-room">
+      <div class="room-type" id="room-type">전체</div>
+      <div id="current-room-name">전체 프로젝트</div>
+    </div>
+
+    <div class="auto-switch-info" id="auto-switch-info" style="display: none">
+      💡 컴포넌트를 선택하면 해당 채팅방으로 자동 전환됩니다
+    </div>
+
+    <div
+      class="keyboard-shortcut-info"
+      id="shortcut-info"
+      style="display: none"
+    >
+      ⌨️ 단축키: Ctrl+/ → "채팅" 검색 | 플러그인 내: Ctrl+L (닫기), Ctrl+Enter
+      (전송), ESC (닫기)
+    </div>
+
+    <div class="connection-status connecting" id="connection-status">
+      Firebase 연결 중...
+    </div>
+
+    <div class="user-list" id="user-list">온라인 사용자: 계산 중...</div>
+
+    <div class="chat-container">
+      <div class="messages" id="messages">
+        <div class="empty-state">
+          <div class="icon">💬</div>
+          <div>첫 번째 메시지를 보내보세요.</div>
+        </div>
+      </div>
+
+      <div class="input-container">
+        <textarea
+          id="message-input"
+          class="message-input"
+          placeholder="메시지를 입력하세요..."
+          rows="1"
+          maxlength="500"
+        ></textarea>
+        <button id="send-button" class="send-button" disabled>➤</button>
+      </div>
+    </div>
+
+    <!-- Firebase SDK v9 -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        addDoc,
+        onSnapshot,
+        orderBy,
+        query,
+        serverTimestamp,
+        doc,
+        setDoc,
+        deleteDoc,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      // Firebase를 전역 변수로 설정
+      window.firebaseModules = {
+        initializeApp,
+        getFirestore,
+        collection,
+        addDoc,
+        onSnapshot,
+        orderBy,
+        query,
+        serverTimestamp,
+        doc,
+        setDoc,
+        deleteDoc,
+      };
+    </script>
+
+    <script>
+      // Firebase 설정 - 실제 프로젝트 설정
+      const firebaseConfig = {
+        apiKey: "AIzaSyAC2k92N-PNHzKiSmbvw9vuj2CrKmw4giU",
+        authDomain: "figmachat-e0bd5.firebaseapp.com",
+        projectId: "figmachat-e0bd5",
+        storageBucket: "figmachat-e0bd5.firebasestorage.app",
+        messagingSenderId: "136603238811",
+        appId: "1:136603238811:web:8754ba4e0dcdd28573a13e",
+        measurementId: "G-LYP8GDLLKN",
+      };
+
+      class FigmaFirebaseChatApp {
+        constructor() {
+          this.currentUser = null;
+          this.projectInfo = null;
+          this.roomId = null;
+          this.unsubscribe = null;
+          this.onlineUsers = new Set();
+          this.availableComponents = [];
+          this.currentComponent = null;
+          this.beforeUnloadRegistered = false;
+          this.roomMessageCounts = new Map(); // 각 방의 메시지 개수 저장
+          this.roomCountListeners = new Map(); // 각 방의 카운트 리스너 저장
+          this.isRoomTransitioning = false; // 방 전환 중 상태 추적
+
+          this.initializeElements();
+          this.setupEventListeners();
+          this.initializeFirebase();
+        }
+
+        initializeElements() {
+          this.elements = {
+            projectName: document.getElementById("project-name"),
+            connectionStatus: document.getElementById("connection-status"),
+            userList: document.getElementById("user-list"),
+            messages: document.getElementById("messages"),
+            messageInput: document.getElementById("message-input"),
+            sendButton: document.getElementById("send-button"),
+            roomDropdown: document.getElementById("room-dropdown"),
+            currentRoom: document.getElementById("current-room"),
+            roomType: document.getElementById("room-type"),
+            currentRoomName: document.getElementById("current-room-name"),
+            autoSwitchInfo: document.getElementById("auto-switch-info"),
+          };
+        }
+
+        setupEventListeners() {
+          // Figma 플러그인 메시지 수신
+          window.onmessage = (event) => {
+            const msg = event.data.pluginMessage;
+            if (msg) {
+              this.handleFigmaMessage(msg);
+            }
+          };
+
+          // 메시지 입력 이벤트
+          this.elements.messageInput.addEventListener("input", (e) => {
+            this.handleInputChange(e);
+          });
+
+          this.elements.messageInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              this.sendMessage();
+            }
+          });
+
+          // 전역 키보드 단축키 (플러그인 내부에서만 작동)
+          document.addEventListener("keydown", (e) => {
+            // Ctrl+L 또는 Cmd+L로 플러그인 닫기
+            if ((e.ctrlKey || e.metaKey) && e.key === "l") {
+              e.preventDefault();
+              console.log("🎹 단축키 감지: Ctrl/Cmd + L - 플러그인 닫기");
+              this.closePlugin();
+            }
+            // Escape로 플러그인 닫기
+            if (e.key === "Escape") {
+              e.preventDefault();
+              console.log("🎹 단축키 감지: Escape - 플러그인 닫기");
+              this.closePlugin();
+            }
+            // Ctrl+Enter 또는 Cmd+Enter로 메시지 전송
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+              e.preventDefault();
+              console.log("🎹 단축키 감지: Ctrl/Cmd + Enter - 메시지 전송");
+              this.sendMessage();
+            }
+          });
+
+          // 전송 버튼
+          this.elements.sendButton.addEventListener("click", () => {
+            this.sendMessage();
+          });
+
+          // 자동 높이 조절
+          this.elements.messageInput.addEventListener("input", () => {
+            this.adjustTextareaHeight();
+          });
+
+          // 채팅방 선택 이벤트
+          this.elements.roomDropdown.addEventListener("change", () => {
+            this.handleRoomChange();
+          });
+        }
+
+        async handleRoomChange() {
+          const selectedComponentId = this.elements.roomDropdown.value;
+          if (!selectedComponentId) return;
+
+          // Figma 플러그인에 방 변경 요청
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "switch-room",
+                componentId: selectedComponentId,
+                componentName:
+                  this.elements.roomDropdown.options[
+                    this.elements.roomDropdown.selectedIndex
+                  ].text,
+              },
+            },
+            "*"
+          );
+        }
+
+        closePlugin() {
+          // 모든 리스너 정리
+          if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
+          }
+
+          this.roomCountListeners.forEach((unsubscribe) => unsubscribe());
+          this.roomCountListeners.clear();
+
+          // Figma 플러그인 닫기 요청
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "close-plugin",
+              },
+            },
+            "*"
+          );
+        }
+
+        async initializeFirebase() {
+          try {
+            // Firebase 모듈이 로드될 때까지 대기
+            while (!window.firebaseModules) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+
+            const { initializeApp, getFirestore } = window.firebaseModules;
+
+            // Firebase 초기화
+            this.app = initializeApp(firebaseConfig);
+            this.db = getFirestore(this.app);
+
+            this.updateConnectionStatus("Firebase 연결됨", "connected");
+            console.log("✅ Firebase 초기화 성공!");
+          } catch (error) {
+            console.error("❌ Firebase 초기화 오류:", error);
+            this.enableDemoMode();
+          }
+        }
+
+        enableDemoMode() {
+          console.log("데모 모드로 실행 중 (Firebase 설정 필요)");
+          this.updateConnectionStatus(
+            "데모 모드 - Firebase 설정 필요",
+            "error"
+          );
+          this.elements.sendButton.disabled = false;
+
+          // 데모 메시지 표시
+          setTimeout(() => {
+            this.displayMessage({
+              content:
+                "⚠️ Firebase 설정이 필요합니다. README.md를 참고하여 설정해주세요.",
+              user: { name: "시스템", id: "system" },
+              timestamp: new Date().toISOString(),
+            });
+          }, 1000);
+        }
+
+        handleFigmaMessage(msg) {
+          switch (msg.type) {
+            case "init":
+              this.currentUser = msg.data.user;
+              this.projectInfo = msg.data;
+              this.roomId = msg.data.fileId || "default";
+              this.availableComponents = msg.data.availableComponents || [];
+              this.currentComponent = msg.data.selectedComponent;
+
+              console.log("🔍 채팅방 ID 설정:", {
+                fileName: msg.data.fileName,
+                fileId: msg.data.fileId,
+                roomId: this.roomId,
+                selectedComponent: this.currentComponent,
+                availableComponents: this.availableComponents,
+              });
+
+              this.updateRoomDropdown();
+              this.updateCurrentRoom();
+              this.updateProjectInfo();
+              this.joinRoom();
+
+              // Firebase 초기화가 완료된 후 리스너 설정
+              setTimeout(() => {
+                this.setupRoomCountListeners(); // 모든 방의 메시지 개수 리스너 설정
+              }, 1000);
+
+              this.elements.autoSwitchInfo.style.display = "block";
+
+              // 단축키 정보 표시 (5초 후 자동 숨김)
+              const shortcutInfo = document.getElementById("shortcut-info");
+              if (shortcutInfo) {
+                shortcutInfo.style.display = "block";
+                setTimeout(() => {
+                  shortcutInfo.style.display = "none";
+                }, 5000);
+              }
+              break;
+
+            case "selection-changed":
+              console.log("📨 선택 변경 메시지 받음:", msg.data);
+
+              const previousRoomId = this.roomId;
+              const previousComponent = this.currentComponent;
+
+              // 새로운 컴포넌트 정보 먼저 설정
+              this.currentComponent = msg.data.selectedComponent;
+
+              console.log("🔄 선택 변경:", {
+                previousRoomId: previousRoomId,
+                newRoomId: msg.data.roomId,
+                previousComponent: previousComponent,
+                selectedComponent: this.currentComponent,
+                shouldSwitch: previousRoomId !== msg.data.roomId,
+              });
+
+              this.updateCurrentRoom();
+              this.updateDropdownSelection();
+
+              // 현재 방 정보 강제 업데이트 (컴포넌트가 변경된 경우)
+              if (previousComponent?.id !== this.currentComponent?.id) {
+                console.log("🔄 컴포넌트 변경됨 - 방 정보 강제 업데이트");
+                this.updateCurrentRoomInfo();
+              }
+
+              // 실제로 방이 다를 때만 전환 (roomId는 switchToRoom에서 업데이트)
+              if (previousRoomId !== msg.data.roomId) {
+                console.log("🚀 채팅방 전환 시작...");
+                this.switchToRoom(msg.data.roomId);
+              } else {
+                console.log("ℹ️ 동일한 채팅방이므로 전환하지 않음");
+              }
+              break;
+
+            case "room-switched":
+              this.roomId = msg.data.roomId;
+              console.log("🏠 방 변경됨:", msg.data);
+              this.switchToRoom(this.roomId);
+              break;
+
+            case "file-info":
+              this.projectInfo = msg.data;
+              this.roomId = msg.data.fileId || "default";
+              this.availableComponents = msg.data.availableComponents || [];
+
+              console.log("🔍 채팅방 ID 업데이트:", {
+                fileName: msg.data.fileName,
+                fileId: msg.data.fileId,
+                roomId: this.roomId,
+              });
+
+              this.updateRoomDropdown();
+              this.updateProjectInfo();
+              break;
+          }
+        }
+
+        updateProjectInfo() {
+          if (this.projectInfo) {
+            const fileName = this.projectInfo.fileName || "무제 프로젝트";
+            const shortRoomId = this.roomId
+              ? this.roomId.substring(0, 8) + "..."
+              : "N/A";
+            this.elements.projectName.textContent = `${fileName} (ID: ${shortRoomId})`;
+          }
+        }
+
+        updateRoomDropdown() {
+          console.log("🔄 드롭다운 업데이트 시작", {
+            availableComponentsCount: this.availableComponents.length,
+            roomMessageCountsSize: this.roomMessageCounts.size,
+            allCounts: Array.from(this.roomMessageCounts.entries()),
+          });
+
+          this.elements.roomDropdown.innerHTML = "";
+
+          this.availableComponents.forEach((component) => {
+            const option = document.createElement("option");
+            option.value = component.id;
+
+            // 메시지 개수 표시
+            const messageCount = this.roomMessageCounts.get(component.id) || 0;
+            const countDisplay = messageCount > 0 ? ` (${messageCount})` : "";
+            const activeIndicator = messageCount > 0 ? "💬 " : "📭 ";
+
+            option.textContent = `${activeIndicator}${component.name}${countDisplay}`;
+
+            console.log(`📋 드롭다운 옵션 생성: ${component.name}`, {
+              componentId: component.id,
+              messageCount: messageCount,
+              displayText: option.textContent,
+            });
+
+            if (
+              this.currentComponent &&
+              component.id === this.currentComponent.id
+            ) {
+              option.selected = true;
+            }
+
+            this.elements.roomDropdown.appendChild(option);
+          });
+
+          console.log("✅ 드롭다운 업데이트 완료");
+        }
+
+        updateDropdownSelection() {
+          if (this.currentComponent) {
+            this.elements.roomDropdown.value = this.currentComponent.id;
+          }
+        }
+
+        updateCurrentRoom() {
+          if (this.currentComponent) {
+            const typeMap = {
+              general: "전체",
+              component: "컴포넌트",
+              instance: "인스턴스",
+              nested: "중첩",
+              layer: "레이어",
+            };
+
+            this.elements.roomType.textContent =
+              typeMap[this.currentComponent.type] || this.currentComponent.type;
+
+            // 메시지 개수 포함한 방 정보 업데이트
+            this.updateCurrentRoomInfo();
+
+            // 임시: 메시지 입력창 placeholder 업데이트
+            this.elements.messageInput.placeholder = `${this.currentComponent.name}에서 메시지를 입력하세요...`;
+
+            console.log("🏠 현재 방 정보 업데이트:", {
+              type: this.currentComponent.type,
+              name: this.currentComponent.name,
+              roomId: this.roomId,
+            });
+          }
+        }
+
+        async switchToRoom(newRoomId) {
+          // 현재 방과 같은 방으로 전환하려는 경우 중단
+          if (newRoomId === this.roomId) {
+            console.log("⚠️ 동일한 방으로 전환 시도 - 중단:", newRoomId);
+            return;
+          }
+
+          // 이미 방 전환 중인 경우 중단
+          if (this.isRoomTransitioning) {
+            console.log("⚠️ 이미 방 전환 중 - 중단:", newRoomId);
+            return;
+          }
+
+          this.isRoomTransitioning = true;
+          console.log("🔄 채팅방 전환:", { from: this.roomId, to: newRoomId });
+
+          try {
+            // 이전 리스너 완전히 정리
+            console.log("🧹 이전 리스너 정리 중...");
+            if (this.unsubscribe) {
+              this.unsubscribe();
+              this.unsubscribe = null;
+              console.log("✅ 이전 리스너 정리 완료");
+            }
+
+            // roomId 업데이트는 여기서
+            this.roomId = newRoomId;
+            console.log("📝 새 roomId 설정:", this.roomId);
+
+            // 메시지 초기화
+            console.log("🗑️ 메시지 초기화 중...", {
+              currentChildrenCount: this.elements.messages.children.length,
+              currentRoomId: this.roomId,
+            });
+
+            // 기존 메시지 완전히 제거
+            while (this.elements.messages.firstChild) {
+              this.elements.messages.removeChild(
+                this.elements.messages.firstChild
+              );
+            }
+
+            // 빈 상태 추가
+            const emptyStateDiv = document.createElement("div");
+            emptyStateDiv.className = "empty-state";
+            const roomName = this.currentComponent
+              ? this.currentComponent.name
+              : "채팅방";
+            emptyStateDiv.innerHTML = `<div class="icon">💬</div><div>${roomName}에서<br>첫 번째 메시지를 보내보세요.</div>`;
+            this.elements.messages.appendChild(emptyStateDiv);
+
+            console.log("✅ 메시지 초기화 완료", {
+              newChildrenCount: this.elements.messages.children.length,
+              innerHTML:
+                this.elements.messages.innerHTML.substring(0, 100) + "...",
+            });
+
+            // 드롭다운 업데이트
+            console.log("🔄 드롭다운 업데이트 중...");
+            this.updateDropdownSelection();
+            console.log("✅ 드롭다운 업데이트 완료");
+
+            // 새 방 참가
+            console.log("🏠 새 방 참가 시작...");
+            await this.joinRoom();
+            console.log("✅ 새 방 참가 완료");
+
+            console.log("🎉 채팅방 전환 완료:", this.roomId);
+          } catch (error) {
+            console.error("❌ 채팅방 전환 에러:", error);
+          } finally {
+            this.isRoomTransitioning = false;
+          }
+        }
+
+        // 모든 채팅방의 메시지 개수 리스너 설정
+        async setupRoomCountListeners() {
+          console.log("📊 setupRoomCountListeners 호출됨", {
+            dbExists: !!this.db,
+            availableComponentsLength: this.availableComponents.length,
+            availableComponents: this.availableComponents,
+          });
+
+          if (!this.db) {
+            console.error("❌ DB가 없어서 리스너 설정 불가");
+            return;
+          }
+
+          if (!this.availableComponents.length) {
+            console.error(
+              "❌ availableComponents가 비어있어서 리스너 설정 불가"
+            );
+            return;
+          }
+
+          console.log("📊 메시지 개수 리스너 설정 시작");
+
+          try {
+            const { collection, onSnapshot, query } = window.firebaseModules;
+
+            // 기존 리스너들 정리
+            console.log(
+              "🧹 기존 리스너 정리 중...",
+              this.roomCountListeners.size
+            );
+            this.roomCountListeners.forEach((unsubscribe) => unsubscribe());
+            this.roomCountListeners.clear();
+            this.roomMessageCounts.clear(); // 기존 카운트도 초기화
+
+            for (const component of this.availableComponents) {
+              const roomId = this.generateRoomIdForComponent(component);
+
+              console.log(`📊 리스너 설정 중: ${component.name}`, {
+                componentId: component.id,
+                roomId: roomId,
+              });
+
+              const messagesRef = collection(
+                this.db,
+                "chatRooms",
+                roomId,
+                "messages"
+              );
+              const messagesQuery = query(messagesRef);
+
+              const unsubscribe = onSnapshot(
+                messagesQuery,
+                (snapshot) => {
+                  const messageCount = snapshot.size;
+                  this.roomMessageCounts.set(component.id, messageCount);
+
+                  console.log(`📊 ${component.name} 메시지 개수 업데이트:`, {
+                    componentId: component.id,
+                    roomId: roomId,
+                    messageCount: messageCount,
+                    snapshotSize: snapshot.size,
+                    totalCounts: this.roomMessageCounts.size,
+                  });
+
+                  // 드롭다운 업데이트
+                  this.updateRoomDropdown();
+
+                  // 현재 방 정보 업데이트
+                  this.updateCurrentRoomInfo();
+                },
+                (error) => {
+                  console.error(`❌ ${component.name} 리스너 에러:`, error);
+                }
+              );
+
+              this.roomCountListeners.set(component.id, unsubscribe);
+              console.log(`✅ ${component.name} 리스너 설정 완료`);
+            }
+
+            console.log("✅ 메시지 개수 리스너 설정 완료", {
+              totalListeners: this.roomCountListeners.size,
+              components: Array.from(this.roomCountListeners.keys()),
+            });
+          } catch (error) {
+            console.error("❌ 메시지 개수 리스너 설정 오류:", error);
+          }
+        }
+
+        // 컴포넌트를 위한 Room ID 생성
+        generateRoomIdForComponent(component) {
+          // code.js의 generateRoomId 로직과 동일하게 구현
+          let baseId = "";
+          if (
+            this.projectInfo?.figmaFileKey &&
+            this.projectInfo.figmaFileKey !== ""
+          ) {
+            baseId = this.projectInfo.figmaFileKey;
+          } else {
+            const fileName = this.projectInfo?.fileName || "untitled";
+            const rootId = this.projectInfo?.rootId || "0:0";
+            const cleanFileName = fileName
+              .replace(/[^a-zA-Z0-9]/g, "_")
+              .toLowerCase();
+            baseId = `${cleanFileName}_${rootId}`;
+          }
+
+          let roomId;
+          if (component.id === "general") {
+            roomId = `${baseId}_general`;
+          } else {
+            roomId = `${baseId}_component_${component.id}`;
+          }
+
+          console.log("🆔 Room ID 생성:", {
+            component: component,
+            baseId: baseId,
+            generatedRoomId: roomId,
+            projectInfo: this.projectInfo,
+          });
+
+          return roomId;
+        }
+
+        // 현재 방 정보 업데이트
+        updateCurrentRoomInfo() {
+          if (this.currentComponent) {
+            const messageCount =
+              this.roomMessageCounts.get(this.currentComponent.id) || 0;
+            const countDisplay =
+              messageCount > 0 ? ` (${messageCount}개 메시지)` : " (빈 채팅방)";
+
+            console.log("🔍 현재 방 정보 디버그:", {
+              currentComponentId: this.currentComponent.id,
+              currentComponentName: this.currentComponent.name,
+              messageCount: messageCount,
+              allCounts: Array.from(this.roomMessageCounts.entries()),
+              currentRoomId: this.roomId,
+            });
+
+            // 현재 방 이름에 메시지 개수 표시
+            this.elements.currentRoomName.textContent =
+              this.currentComponent.name + countDisplay;
+          }
+        }
+
+        async joinRoom() {
+          console.log("🔗 joinRoom 메소드 시작:", {
+            db: !!this.db,
+            roomId: this.roomId,
+          });
+
+          if (!this.db || !this.roomId) {
+            console.log("❌ joinRoom 조건 불충족:", {
+              db: !!this.db,
+              roomId: this.roomId,
+            });
+            return;
+          }
+
+          try {
+            console.log("📦 Firebase 모듈 로드 중...");
+            const { collection, onSnapshot, orderBy, query } =
+              window.firebaseModules;
+            console.log("✅ Firebase 모듈 로드 완료");
+
+            // 이전 리스너 완전히 정리
+            if (this.unsubscribe) {
+              console.log("🧹 기존 리스너 정리 중...");
+              this.unsubscribe();
+              this.unsubscribe = null;
+              console.log("✅ 기존 리스너 정리 완료");
+            }
+
+            console.log("🔗 새 채팅방 참가:", this.roomId);
+
+            // 메시지 실시간 리스너 설정
+            console.log("📋 메시지 쿼리 생성 중...");
+            const messagesRef = collection(
+              this.db,
+              "chatRooms",
+              this.roomId,
+              "messages"
+            );
+            const messagesQuery = query(
+              messagesRef,
+              orderBy("timestamp", "asc")
+            );
+            console.log("✅ 메시지 쿼리 생성 완료");
+
+            console.log("👂 실시간 리스너 설정 중...");
+            this.unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+              console.log("📨 메시지 변경 감지:", {
+                size: snapshot.size,
+                changes: snapshot.docChanges().length,
+              });
+              snapshot.docChanges().forEach((change) => {
+                if (change.type === "added") {
+                  console.log("➕ 새 메시지 표시:", change.doc.data());
+                  this.displayMessage(change.doc.data());
+                }
+              });
+            });
+
+            console.log("✅ 실시간 리스너 설정 완료 -", this.roomId);
+
+            // 사용자 온라인 상태 업데이트
+            console.log("👤 온라인 상태 업데이트 중...");
+            await this.updateOnlineStatus(true);
+            console.log("✅ 온라인 상태 업데이트 완료");
+
+            // 페이지 종료 시 오프라인 상태로 변경 (한 번만 등록)
+            if (!this.beforeUnloadRegistered) {
+              window.addEventListener("beforeunload", () => {
+                this.updateOnlineStatus(false);
+              });
+              this.beforeUnloadRegistered = true;
+            }
+
+            console.log("🎉 joinRoom 완료:", this.roomId);
+          } catch (error) {
+            console.error("❌ 방 참가 오류:", error);
+            this.updateConnectionStatus("연결 오류", "error");
+          }
+        }
+
+        async updateOnlineStatus(isOnline) {
+          if (!this.db || !this.currentUser || !this.roomId) return;
+
+          try {
+            const { collection, doc, setDoc, deleteDoc, serverTimestamp } =
+              window.firebaseModules;
+
+            const userRef = doc(
+              this.db,
+              "chatRooms",
+              this.roomId,
+              "onlineUsers",
+              this.currentUser.id
+            );
+
+            if (isOnline) {
+              await setDoc(userRef, {
+                name: this.currentUser.name,
+                lastSeen: serverTimestamp(),
+              });
+            } else {
+              await deleteDoc(userRef);
+            }
+          } catch (error) {
+            console.error("온라인 상태 업데이트 오류:", error);
+          }
+        }
+
+        async sendMessage() {
+          const content = this.elements.messageInput.value.trim();
+          if (!content) return;
+
+          if (!this.db) {
+            // 데모 모드에서는 로컬에 표시만
+            this.displayMessage({
+              content: content,
+              user: this.currentUser || { name: "익명", id: "demo" },
+              timestamp: new Date().toISOString(),
+            });
+
+            this.elements.messageInput.value = "";
+            this.adjustTextareaHeight();
+            return;
+          }
+
+          try {
+            const { collection, addDoc, serverTimestamp } =
+              window.firebaseModules;
+
+            const message = {
+              content: content,
+              user: this.currentUser,
+              timestamp: serverTimestamp(),
+              roomId: this.roomId,
+            };
+
+            const messagesRef = collection(
+              this.db,
+              "chatRooms",
+              this.roomId,
+              "messages"
+            );
+            await addDoc(messagesRef, message);
+
+            this.elements.messageInput.value = "";
+            this.adjustTextareaHeight();
+            this.elements.sendButton.disabled = true;
+          } catch (error) {
+            console.error("메시지 전송 오류:", error);
+            this.displayMessage({
+              content: "⚠️ 메시지 전송에 실패했습니다.",
+              user: { name: "시스템", id: "system" },
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
+
+        displayMessage(message) {
+          console.log("🎨 displayMessage 시작:", {
+            message,
+            currentUser: this.currentUser,
+            messagesContainer: !!this.elements.messages,
+            messagesChildrenCount: this.elements.messages.children.length,
+          });
+
+          // 빈 상태 메시지 제거
+          const emptyState =
+            this.elements.messages.querySelector(".empty-state");
+          if (emptyState) {
+            console.log("🗑️ 빈 상태 메시지 제거");
+            emptyState.remove();
+          }
+
+          const messageElement = document.createElement("div");
+          const isOwnMessage = message.user?.id === this.currentUser?.id;
+
+          console.log("📝 메시지 요소 생성:", {
+            isOwnMessage,
+            messageUserId: message.user?.id,
+            currentUserId: this.currentUser?.id,
+            content: message.content,
+          });
+
+          messageElement.className = `message ${
+            isOwnMessage ? "own" : "other"
+          }`;
+          messageElement.innerHTML = `
+                    <div class="message-header">
+                        ${message.user?.name || "익명"}
+                    </div>
+                    <div class="message-content">
+                        ${this.escapeHtml(message.content)}
+                    </div>
+                    <div class="message-time">
+                        ${this.formatTime(message.timestamp)}
+                    </div>
+                `;
+
+          console.log("➕ 메시지 DOM에 추가 중...", {
+            elementClassName: messageElement.className,
+            elementHTML: messageElement.innerHTML.substring(0, 100) + "...",
+          });
+
+          this.elements.messages.appendChild(messageElement);
+          this.elements.messages.scrollTop =
+            this.elements.messages.scrollHeight;
+
+          console.log("✅ 메시지 표시 완료:", {
+            totalMessages: this.elements.messages.children.length,
+            scrollTop: this.elements.messages.scrollTop,
+            scrollHeight: this.elements.messages.scrollHeight,
+          });
+        }
+
+        handleInputChange(e) {
+          const hasContent = e.target.value.trim().length > 0;
+          this.elements.sendButton.disabled = !hasContent;
+        }
+
+        updateConnectionStatus(message, status) {
+          this.elements.connectionStatus.textContent = message;
+          this.elements.connectionStatus.className = `connection-status ${status}`;
+        }
+
+        adjustTextareaHeight() {
+          const textarea = this.elements.messageInput;
+          textarea.style.height = "auto";
+          textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
+        }
+
+        escapeHtml(text) {
+          const div = document.createElement("div");
+          div.textContent = text;
+          return div.innerHTML;
+        }
+
+        formatTime(timestamp) {
+          let date;
+          if (timestamp && timestamp.toDate) {
+            date = timestamp.toDate();
+          } else {
+            date = new Date(timestamp);
+          }
+          return date.toLocaleTimeString("ko-KR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+
+        async handleRoomChange() {
+          const selectedRoomId = this.elements.roomDropdown.value;
+          if (!selectedRoomId) return;
+
+          this.roomId = selectedRoomId;
+          await this.joinRoom();
+          this.updateProjectInfo();
+          this.updateCurrentRoom();
+        }
+
+        updateCurrentRoom() {
+          if (this.projectInfo) {
+            const roomType =
+              this.projectInfo.fileType === "figma" ? "Figma" : "컴포넌트";
+            this.elements.roomType.textContent = roomType;
+            this.elements.currentRoomName.textContent =
+              this.projectInfo.fileName || "무제 프로젝트";
+          }
+        }
+      }
+
+      // 앱 초기화
+      document.addEventListener("DOMContentLoaded", () => {
+        new FigmaFirebaseChatApp();
+      });
+    </script>
+  </body>
+</html>
