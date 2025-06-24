@@ -70,15 +70,43 @@ async function createChatBadge(component, messageCount = 0) {
     badge.setPluginData("isChatBadge", "true");
     badge.setPluginData("componentId", component.id);
 
-    // 배지를 맨 앞으로 이동
+    // 배지를 컴포넌트와 같은 부모에 추가
     component.parent.appendChild(badge);
+
+    // 배지의 위치를 컴포넌트에 상대적으로 설정
+    // 배지가 컴포넌트를 따라 이동하도록 컴포넌트 내부에 배치
+    try {
+      // 컴포넌트가 프레임이거나 그룹인 경우, 배지를 내부에 추가
+      if (
+        component.type === "FRAME" ||
+        component.type === "GROUP" ||
+        component.type === "COMPONENT"
+      ) {
+        // 배지를 컴포넌트 내부로 이동
+        component.appendChild(badge);
+
+        // 컴포넌트 내부에서의 상대적 위치 설정 (우상단)
+        badge.x = component.width - badgeSize / 2;
+        badge.y = -badgeSize / 2;
+
+        console.log("📍 배지를 컴포넌트 내부로 이동:", {
+          x: badge.x,
+          y: badge.y,
+          componentWidth: component.width,
+          componentHeight: component.height,
+        });
+      }
+    } catch (error) {
+      console.log("⚠️ 컴포넌트 내부 배치 실패, 외부 배치 유지:", error);
+    }
 
     console.log("✅ 채팅 배지 생성 완료:", {
       componentName: component.name,
       badgeId: badge.id,
       messageCount: messageCount,
       position: { x: badge.x, y: badge.y },
-      parent: component.parent.name,
+      parent: badge.parent.name,
+      isInsideComponent: badge.parent.id === component.id,
     });
 
     return badge;
@@ -146,6 +174,36 @@ async function updateChatBadge(badge, messageCount) {
 function removeAllChatBadges() {
   try {
     function findAndRemoveBadges(node) {
+      // 채팅 배지 그룹인지 확인
+      if (node.name && node.name.includes("(with chat badge)")) {
+        // 그룹 내의 컴포넌트를 찾아서 그룹 밖으로 이동
+        const componentInGroup = node.children.find(
+          (child) =>
+            child.type === "COMPONENT" ||
+            child.type === "COMPONENT_SET" ||
+            child.type === "FRAME"
+        );
+        if (componentInGroup) {
+          // 컴포넌트를 그룹 밖으로 이동
+          const originalParent = node.parent;
+          originalParent.appendChild(componentInGroup);
+
+          // 컴포넌트의 위치를 그룹의 위치로 조정
+          componentInGroup.x = node.x;
+          componentInGroup.y = node.y;
+
+          // 플러그인 데이터 정리
+          componentInGroup.setPluginData("chatBadgeId", "");
+          componentInGroup.setPluginData("chatGroupId", "");
+          componentInGroup.setPluginData("chatMessageCount", "");
+        }
+
+        // 그룹 제거
+        node.remove();
+        return;
+      }
+
+      // 개별 배지 제거 (그룹이 아닌 경우)
       if (node.getPluginData && node.getPluginData("isChatBadge") === "true") {
         node.remove();
         return;
